@@ -137,7 +137,7 @@ namespace Sample.ViewModels
 		}
 
         IReusableDialog redlg;
-        private IReusableLoading _customLoading;
+        private static IReusableLoading _customLoading;
 
         public void OnNavigatedTo(NavigationParameters parameters)
 		{

@@ -11,7 +11,7 @@ namespace Sample.ViewModels
         public IndexPageViewModel(INavigationService navigationService)
         {
             GoToTest.Subscribe(async p => {
-                await navigationService.NavigateAsync(p);
+                await navigationService.NavigateAsync(p, useModalNavigation: true);
             });
         }
     }

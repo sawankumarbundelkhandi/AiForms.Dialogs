@@ -11,11 +11,12 @@ using System.ComponentModel;
 using Xamarin.Forms;
 using AiForms.Dialogs;
 using AiForms.Dialogs.Abstractions;
+using Prism.Unity;
 
 namespace Sample.ViewModels
 {
-	public class MainPageViewModel : BindableBase, INavigationAware
-	{
+    public class MainPageViewModel : BindableBase, INavigationAware
+    {
         public AsyncReactiveCommand LoadingCommand { get; } = new AsyncReactiveCommand();
         public AsyncReactiveCommand CustomLoadingCommand { get; set; } = new AsyncReactiveCommand();
         public ReactiveCommand DialogCommand { get; } = new ReactiveCommand();
@@ -30,9 +31,10 @@ namespace Sample.ViewModels
         public ReactivePropertySlim<LayoutAlignment> VAlign { get; } = new ReactivePropertySlim<LayoutAlignment>();
         public ReactivePropertySlim<LayoutAlignment> HAlign { get; } = new ReactivePropertySlim<LayoutAlignment>();
         public ReactivePropertySlim<bool> UseCurrentPageLocation { get; } = new ReactivePropertySlim<bool>(false);
+        private readonly INavigationService navigationService;
 
-        public MainPageViewModel(MyIndicatorView myIndicatorView)
-		{
+        public MainPageViewModel(MyIndicatorView myIndicatorView, INavigationService navigationService)
+        {
 
             VAligns.Add(LayoutAlignment.Start);
             VAligns.Add(LayoutAlignment.Center);
@@ -54,6 +56,9 @@ namespace Sample.ViewModels
                 //await Task.Delay(1);
                 //Loading.Instance.Hide();
 
+                await navigationService.GoBackAsync(useModalNavigation: true);
+                return;
+
                 await Loading.Instance.StartAsync(async progress => {
                     //await Task.Delay(1);
                     progress.Report(0d);
@@ -74,24 +79,24 @@ namespace Sample.ViewModels
 
             CustomLoadingCommand.Subscribe(async _ =>
             {
-                var customLoading = Loading.Instance.Create<MyIndicatorView>(new
+                if (_customLoading == null)
                 {
-                    Message = "Loading...",
-                    VAlign = VAlign.Value,
-                    HAlign = HAlign.Value,
-                    OffsetX = OffsetX.Value,
-                    OffsetY = OffsetY.Value
-                });
-                await customLoading.StartAsync(async p =>
-                {
-                    await Task.Delay(1);
-                    p.Report(0d);
-                    for (var i = 0; i < 100; i++)
+                    _customLoading = Loading.Instance.Create<MyIndicatorView>(new
                     {
-                        await Task.Delay(25);
-                        p.Report((i + 1) * 0.01d);
-                    }
-                });
+                        Message = "Loading...",
+                        VAlign = VAlign.Value,
+                        HAlign = HAlign.Value,
+                        OffsetX = OffsetX.Value,
+                        OffsetY = OffsetY.Value
+                    });
+                }
+
+
+
+                _customLoading.Show();
+                await Task.Delay(10000);
+                _customLoading.Hide();
+
             });
 
             var dlgPage = new MyDialogView();
@@ -132,8 +137,9 @@ namespace Sample.ViewModels
 		}
 
         IReusableDialog redlg;
+        private IReusableLoading _customLoading;
 
-		public void OnNavigatedTo(NavigationParameters parameters)
+        public void OnNavigatedTo(NavigationParameters parameters)
 		{
             var vm = new { Title = "Title", Description = "Some description write here." };
             redlg = Dialog.Instance.Create<MyDialogView>(vm);
